@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BLANK CANVAS — App Prototype</title>
+<style>
+:root{
+  --bg:#eceef1; --panel:#fff; --ink:#191b20; --muted:#7c828c; --line:#e2e5e9;
+  --soft:#f6f7f9; --active:#1d1f24; --select:#5865f2; --shadow:0 22px 55px rgba(18,22,30,.12);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; overflow:hidden; color:var(--ink);
+  font:13px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--bg);
+}
+button,input{font:inherit}
+button{color:inherit}
+.app{height:100vh;display:grid;grid-template-rows:52px minmax(0,1fr) 28px}
+
+/* top app chrome */
+.topbar{
+  background:rgba(255,255,255,.96); border-bottom:1px solid var(--line);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px;z-index:20
+}
+.top-left,.top-mid,.top-right{display:flex;align-items:center;gap:7px}
+.top-right{justify-content:flex-end}
+.brand{display:flex;align-items:center;gap:9px;font-weight:720;letter-spacing:-.02em}
+.mark{width:27px;height:27px;border-radius:8px;background:#191b20;color:#fff;display:grid;place-items:center;font-size:12px}
+.docname{padding:5px 8px;border-radius:7px;color:#474c55}
+.docname:hover{background:var(--soft)}
+.btn,.iconbtn{
+  height:32px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.14s
+}
+.btn{padding:0 10px}.iconbtn{width:32px;padding:0}
+.btn:hover,.iconbtn:hover{background:#f8f9fa;box-shadow:0 4px 12px rgba(17,24,39,.05)}
+.btn.primary{background:#191b20;color:#fff;border-color:#191b20}
+.btn.primary:hover{background:#282b31}
+.pill{height:29px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:#fff;display:flex;align-items:center;color:#555b65}
+
+/* 3-pane app shell */
+.main{min-height:0;display:grid;grid-template-columns:58px minmax(0,1fr) 292px}
+.rail{
+  background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;
+  align-items:center;gap:5px;padding:10px 0;z-index:15
+}
+.tool{
+  width:38px;height:38px;border:0;background:transparent;border-radius:9px;cursor:pointer;
+  display:grid;place-items:center;font-size:15px;color:#606773;position:relative
+}
+.tool:hover{background:#f1f3f5;color:#202329}
+.tool.active{background:#191b20;color:#fff}
+.tool[data-tip]:hover:after{
+  content:attr(data-tip);position:absolute;left:46px;top:50%;transform:translateY(-50%);
+  background:#191b20;color:#fff;padding:6px 8px;border-radius:6px;white-space:nowrap;font-size:11px;z-index:50;
+  box-shadow:0 8px 20px rgba(0,0,0,.18)
+}
+.sep{height:1px;width:25px;background:var(--line);margin:4px 0}
+
+.workspace{
+  min-width:0;min-height:0;position:relative;overflow:auto;
+  background:
+    linear-gradient(45deg,#e7e9ed 25%,transparent 25%),
+    linear-gradient(-45deg,#e7e9ed 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#e7e9ed 75%),
+    linear-gradient(-45deg,transparent 75%,#e7e9ed 75%);
+  background-size:28px 28px;background-position:0 0,0 14px,14px -14px,-14px 0
+}
+.stage{min-width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;padding:64px 70px}
+canvas{display:block;max-width:100%;height:auto;background:#fff;border-radius:4px;box-shadow:var(--shadow);cursor:default}
+.empty{
+  width:450px;max-width:88%;background:#fff;border:1px solid var(--line);border-radius:15px;
+  padding:32px;text-align:center;box-shadow:var(--shadow)
+}
+.empty-icon{width:50px;height:50px;border-radius:14px;background:#191b20;color:#fff;display:grid;place-items:center;margin:0 auto 15px;font-size:20px}
+.empty h2{font-size:20px;margin:0 0 6px;letter-spacing:-.03em}
+.empty p{margin:0 0 18px;color:var(--muted)}
+.floating{
+  position:absolute;top:13px;left:50%;transform:translateX(-50%);z-index:12;
+  display:flex;gap:4px;align-items:center;padding:5px;background:rgba(255,255,255,.96);
+  border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(21,25,35,.1)
+}
+.floatbtn{height:29px;border:0;background:transparent;border-radius:7px;padding:0 9px;cursor:pointer;color:#555c66}
+.floatbtn:hover{background:#f1f3f5}
+.floatbtn.strong{background:#191b20;color:#fff}
+
+/* inspector */
+.inspector{background:#fff;border-left:1px solid var(--line);overflow:auto}
+.inspector-head{height:48px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-weight:680}
+.panel{padding:14px;border-bottom:1px solid var(--line)}
+.label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#9298a2;font-weight:750;margin-bottom:10px}
+.selection{
+  border:1px solid var(--line);background:#f8f9fa;border-radius:10px;padding:9px 10px;
+  display:flex;justify-content:space-between;align-items:center
+}
+.sel-left{display:flex;align-items:center;gap:9px}
+.swatch{width:18px;height:18px;border-radius:50%;border:2px solid rgba(0,0,0,.07);flex:none}
+.meta{font-size:11px;color:var(--muted)}
+.index{width:23px;height:23px;border-radius:6px;background:#eceef2;display:grid;place-items:center;font-weight:700;font-size:11px}
+.prop{margin:11px 0 14px}
+.prop-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;color:#555c65}
+.num{height:29px;width:72px;border:1px solid var(--line);border-radius:7px;padding:0 8px;text-align:right;background:#fff}
+input[type=range]{width:100%;accent-color:#191b20}
+input[type=color]{width:34px;height:28px;border:0;padding:0;background:none}
+.layers{display:flex;flex-direction:column;gap:6px}
+.layer{
+  width:100%;border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 9px;
+  display:flex;align-items:center;justify-content:space-between;cursor:pointer
+}
+.layer:hover{background:#fafbfc}
+.layer.active{border-color:#202329;box-shadow:inset 0 0 0 1px #202329}
+.layer-left{display:flex;align-items:center;gap:8px;text-align:left}
+.layericon{width:23px;height:23px;border-radius:6px;background:#f0f2f4;display:grid;place-items:center;font-size:11px;font-weight:700}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.smallbtn{height:30px;border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer}
+.smallbtn:hover{background:#f6f7f8}
+.smallbtn:disabled,.floatbtn:disabled,.num:disabled,input:disabled{opacity:.42;cursor:not-allowed}
+
+/* status */
+.status{background:#fff;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 10px;color:#7b818b;font-size:11px}
+.status>div{display:flex;gap:13px;align-items:center}
+.kbd{border:1px solid #d8dce1;border-bottom-width:2px;border-radius:4px;background:#fff;padding:0 5px}
+@media(max-width:920px){.main{grid-template-columns:56px 1fr}.inspector{display:none}.top-mid{display:none}.topbar{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="top-left">
+      <div class="brand"><div class="mark">OK</div><span>BLANK CANVAS</span></div>
+      <div class="docname">Untitled job card</div>
+    </div>
+    <div class="top-mid">
+      <button class="iconbtn" title="Undo">↶</button>
+      <button class="iconbtn" title="Redo">↷</button>
+      <div class="pill">100%</div>
+    </div>
+    <div class="top-right">
+      <label class="btn" for="fileInput">Import</label>
+      <input id="fileInput" type="file" accept="image/*" hidden>
+      <button id="downloadBtn" class="btn primary">Export PNG</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="rail">
+      <button class="tool active" data-tip="Select">↖</button>
+      <button id="railMagnifier" class="tool" data-tip="Magnifier">⌕</button>
+      <button class="tool" data-tip="Spotlight">◉</button>
+      <button class="tool" data-tip="Lift-out">▣</button>
+      <button class="tool" data-tip="Brackets">⌗</button>
+      <div class="sep"></div>
+      <button class="tool" data-tip="Arrow">→</button>
+      <button class="tool" data-tip="Numbered step">①</button>
+      <button class="tool" data-tip="Text">T</button>
+    </aside>
+
+    <main class="workspace">
+      <div class="floating">
+        <button id="addBtn" class="floatbtn strong" disabled>+ Magnifier</button>
+        <button id="duplicateBtn" class="floatbtn" disabled>Duplicate</button>
+        <button id="deleteBtn" class="floatbtn" disabled>Delete</button>
+      </div>
+      <div class="stage">
+        <div id="empty" class="empty">
+          <div class="empty-icon">⌕</div>
+          <h2>Start with a screenshot</h2>
+          <p>Add multiple magnifiers and turn screenshots into clear, polished job-card visuals.</p>
+          <label class="btn primary" for="fileInput">Import screenshot</label>
+        </div>
+        <canvas id="canvas" hidden></canvas>
+      </div>
+    </main>
+
+    <aside class="inspector">
+      <div class="inspector-head"><span>Inspector</span><span class="meta">Properties</span></div>
+
+      <div class="panel">
+        <div class="label">Selection</div>
+        <div class="selection">
+          <div class="sel-left">
+            <div id="selSwatch" class="swatch" style="background:#daddE3"></div>
+            <div>
+              <div id="selName">No selection</div>
+              <div id="selMeta" class="meta">Choose a magnifier</div>
+            </div>
+          </div>
+          <div id="selIndex" class="index">–</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="label">Magnifier</div>
+        <div class="prop">
+          <div class="prop-top"><span>Zoom</span><input id="zoomNum" class="num" type="number" min="1.2" max="4" step=".1" value="2"></div>
+          <input id="zoomRange" type="range" min="1.2" max="4" step=".1" value="2">
+        </div>
+        <div class="prop">
+          <div class="prop-top"><span>Radius</span><input id="sizeNum" class="num" type="number" min="48" max="180" step="2" value="96"></div>
+          <input id="sizeRange" type="range" min="48" max="180" step="2" value="96">
+        </div>
+        <div class="prop">
+          <div class="prop-top"><span>Border</span><input id="borderNum" class="num" type="number" min="1" max="16" step="1" value="5"></div>
+          <input id="borderRange" type="range" min="1" max="16" step="1" value="5">
+        </div>
+        <div class="prop">
+          <div class="prop-top"><span>Accent</span><input id="colour" type="color" value="#185ABD"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="label">Layers</div>
+        <div id="layers" class="layers"><div class="meta">No magnifiers yet.</div></div>
+        <div class="actions">
+          <button id="dupSide" class="smallbtn" disabled>Duplicate</button>
+          <button id="delSide" class="smallbtn" disabled>Delete</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="label">Usage</div>
+        <div class="meta" style="line-height:1.65">
+          Drag the large circle to move the lens. Drag the small source point to choose what it magnifies.
+          Each lens has independent zoom, size, border and colour.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="status">
+    <div><span id="statusCount">0 callouts</span><span id="statusDims">No image</span></div>
+    <div><span><span class="kbd">Del</span> remove</span><span>Built by O'KARIM</span></div>
+  </footer>
+</div>
+
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d'),fileInput=document.getElementById('fileInput');
+const empty=document.getElementById('empty'),addBtn=document.getElementById('addBtn'),duplicateBtn=document.getElementById('duplicateBtn'),deleteBtn=document.getElementById('deleteBtn');
+const dupSide=document.getElementById('dupSide'),delSide=document.getElementById('delSide'),downloadBtn=document.getElementById('downloadBtn');
+const zoomNum=document.getElementById('zoomNum'),zoomRange=document.getElementById('zoomRange');
+const sizeNum=document.getElementById('sizeNum'),sizeRange=document.getElementById('sizeRange');
+const borderNum=document.getElementById('borderNum'),borderRange=document.getElementById('borderRange'),colour=document.getElementById('colour');
+const layers=document.getElementById('layers'),selName=document.getElementById('selName'),selMeta=document.getElementById('selMeta'),selSwatch=document.getElementById('selSwatch'),selIndex=document.getElementById('selIndex');
+const statusCount=document.getElementById('statusCount'),statusDims=document.getElementById('statusDims');
+
+let img=new Image(),imageLoaded=false,callouts=[],selectedId=null,nextId=1,dragging=false,dragKind=null,dragId=null,dragOffset={x:0,y:0};
+const palette=['#185ABD','#7C3AED','#00A4EF','#217346','#D24726','#C239B3','#6264A7','#FFB900'];
+const selected=()=>callouts.find(c=>c.id===selectedId)||null;
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+
+function syncUI(){
+  const c=selected(),off=!c;
+  [zoomNum,zoomRange,sizeNum,sizeRange,borderNum,borderRange,colour,duplicateBtn,deleteBtn,dupSide,delSide].forEach(el=>el.disabled=off);
+  addBtn.disabled=!imageLoaded;
+  if(!c){
+    selName.textContent='No selection';selMeta.textContent='Choose a magnifier';selSwatch.style.background='#dadee3';selIndex.textContent='–';
+  }else{
+    const i=callouts.findIndex(x=>x.id===c.id);
+    selName.textContent=c.name;selMeta.textContent=`${c.zoom.toFixed(1)}× zoom · ${c.size}px radius`;selSwatch.style.background=c.color;selIndex.textContent=i+1;
+    zoomNum.value=zoomRange.value=c.zoom;sizeNum.value=sizeRange.value=c.size;borderNum.value=borderRange.value=c.border;colour.value=c.color;
+  }
+}
+function renderLayers(){
+  layers.innerHTML='';
+  if(!callouts.length)layers.innerHTML='<div class="meta">No magnifiers yet.</div>';
+  callouts.forEach((c,i)=>{
+    const b=document.createElement('button');b.className='layer'+(c.id===selectedId?' active':'');b.type='button';
+    b.innerHTML=`<div class="layer-left"><div class="layericon">${i+1}</div><div><div>${c.name}</div><div class="meta">${c.zoom.toFixed(1)}× · ${c.size}px</div></div></div><div class="swatch" style="background:${c.color}"></div>`;
+    b.onclick=()=>{selectedId=c.id;syncUI();renderLayers();draw();};layers.appendChild(b);
+  });
+  statusCount.textContent=`${callouts.length} callout${callouts.length===1?'':'s'}`;
+}
+function createCallout(x,y){
+  const r=96,c={id:nextId++,name:`Magnifier ${callouts.length+1}`,focus:{x:x??canvas.width*.43,y:y??canvas.height*.52},
+    lens:{x:Math.min(canvas.width-r-18,(x??canvas.width*.43)+165),y:Math.max(r+18,(y??canvas.height*.52)-90)},zoom:2,size:96,border:5,color:palette[callouts.length%palette.length]};
+  callouts.push(c);selectedId=c.id;syncUI();renderLayers();draw();
+}
+function draw(){
+  if(!imageLoaded)return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  callouts.forEach((c,i)=>drawCallout(c,i,c.id===selectedId));
+}
+function drawCallout(c,i,isSelected){
+  const r=c.size,bw=c.border,z=c.zoom;
+  ctx.save();ctx.strokeStyle=c.color;ctx.lineWidth=Math.max(2,bw*.65);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(c.focus.x,c.focus.y);ctx.lineTo(c.lens.x,c.lens.y);ctx.stroke();ctx.restore();
+  ctx.save();ctx.fillStyle=c.color;ctx.beginPath();ctx.arc(c.focus.x,c.focus.y,Math.max(4,bw),0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.save();ctx.shadowColor='rgba(16,20,28,.24)';ctx.shadowBlur=22;ctx.shadowOffsetY=7;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(c.lens.x,c.lens.y,r+bw,0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.save();ctx.beginPath();ctx.arc(c.lens.x,c.lens.y,r,0,Math.PI*2);ctx.clip();
+  const srcR=r/z, sx=canvas.width/img.naturalWidth, sy=canvas.height/img.naturalHeight;
+  ctx.drawImage(img,(c.focus.x-srcR)/sx,(c.focus.y-srcR)/sy,(srcR*2)/sx,(srcR*2)/sy,c.lens.x-r,c.lens.y-r,r*2,r*2);ctx.restore();
+  ctx.save();ctx.strokeStyle=c.color;ctx.lineWidth=bw;ctx.beginPath();ctx.arc(c.lens.x,c.lens.y,r,0,Math.PI*2);ctx.stroke();ctx.restore();
+  const bx=c.lens.x+Math.cos(-Math.PI/4)*(r*.84),by=c.lens.y+Math.sin(-Math.PI/4)*(r*.84);
+  ctx.save();ctx.fillStyle='#191b20';ctx.beginPath();ctx.arc(bx,by,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font='700 11px Inter,system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),bx,by+.5);ctx.restore();
+  if(isSelected){ctx.save();ctx.strokeStyle='rgba(88,101,242,.95)';ctx.setLineDash([7,5]);ctx.lineWidth=2;ctx.beginPath();ctx.arc(c.lens.x,c.lens.y,r+bw+8,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(88,101,242,.95)';ctx.beginPath();ctx.arc(c.focus.x,c.focus.y,Math.max(6,bw+2),0,Math.PI*2);ctx.fill();ctx.restore();}
+}
+function p(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*(canvas.width/r.width),y:(e.clientY-r.top)*(canvas.height/r.height)}}
+function hit(pt){
+  for(const c of [...callouts].reverse()){
+    if(Math.hypot(pt.x-c.focus.x,pt.y-c.focus.y)<=Math.max(12,c.border+7))return{c,kind:'focus'};
+    if(Math.hypot(pt.x-c.lens.x,pt.y-c.lens.y)<=c.size+c.border+10)return{c,kind:'lens'};
+  }return null;
+}
+fileInput.addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);
+  img.onload=()=>{const s=Math.min(1,1500/img.naturalWidth,1050/img.naturalHeight);canvas.width=Math.round(img.naturalWidth*s);canvas.height=Math.round(img.naturalHeight*s);
+    imageLoaded=true;callouts=[];selectedId=null;nextId=1;empty.hidden=true;canvas.hidden=false;statusDims.textContent=`${canvas.width} × ${canvas.height} · PNG`;createCallout(canvas.width*.42,canvas.height*.52);URL.revokeObjectURL(url)};
+  img.src=url;
+});
+canvas.addEventListener('pointerdown',e=>{
+  if(!imageLoaded)return;const pt=p(e),h=hit(pt);
+  if(h){selectedId=h.c.id;dragging=true;dragKind=h.kind;dragId=h.c.id;dragOffset=dragKind==='lens'?{x:pt.x-h.c.lens.x,y:pt.y-h.c.lens.y}:{x:pt.x-h.c.focus.x,y:pt.y-h.c.focus.y};canvas.setPointerCapture(e.pointerId)}
+  else selectedId=null;syncUI();renderLayers();draw();
+});
+canvas.addEventListener('pointermove',e=>{
+  if(!dragging)return;const c=callouts.find(x=>x.id===dragId),pt=p(e);if(!c)return;
+  if(dragKind==='lens'){c.lens.x=clamp(pt.x-dragOffset.x,c.size+c.border+10,canvas.width-c.size-c.border-10);c.lens.y=clamp(pt.y-dragOffset.y,c.size+c.border+10,canvas.height-c.size-c.border-10)}
+  else{c.focus.x=clamp(pt.x-dragOffset.x,0,canvas.width);c.focus.y=clamp(pt.y-dragOffset.y,0,canvas.height)}draw();
+});
+['pointerup','pointercancel'].forEach(ev=>canvas.addEventListener(ev,()=>{dragging=false;dragKind=null;dragId=null}));
+function applyProps(){const c=selected();if(!c)return;c.zoom=Number(zoomNum.value);c.size=Number(sizeNum.value);c.border=Number(borderNum.value);c.color=colour.value;
+  c.lens.x=clamp(c.lens.x,c.size+c.border+10,canvas.width-c.size-c.border-10);c.lens.y=clamp(c.lens.y,c.size+c.border+10,canvas.height-c.size-c.border-10);syncUI();renderLayers();draw()}
+function pair(a,b){a.addEventListener('input',()=>{b.value=a.value;applyProps()});b.addEventListener('input',()=>{a.value=b.value;applyProps()})}
+pair(zoomNum,zoomRange);pair(sizeNum,sizeRange);pair(borderNum,borderRange);colour.addEventListener('input',applyProps);
+addBtn.onclick=()=>imageLoaded&&createCallout(canvas.width*.42+callouts.length*22,canvas.height*.5+callouts.length*10);
+function duplicate(){const c=selected();if(!c)return;const n=structuredClone(c);n.id=nextId++;n.name=`Magnifier ${callouts.length+1}`;n.focus={x:clamp(c.focus.x+24,0,canvas.width),y:clamp(c.focus.y+24,0,canvas.height)};n.lens={x:clamp(c.lens.x+30,c.size+c.border+10,canvas.width-c.size-c.border-10),y:clamp(c.lens.y+30,c.size+c.border+10,canvas.height-c.size-c.border-10)};callouts.push(n);selectedId=n.id;syncUI();renderLayers();draw()}
+function remove(){const i=callouts.findIndex(c=>c.id===selectedId);if(i<0)return;callouts.splice(i,1);callouts.forEach((c,j)=>c.name=`Magnifier ${j+1}`);selectedId=callouts.length?callouts[Math.max(0,i-1)].id:null;syncUI();renderLayers();draw()}
+duplicateBtn.onclick=dupSide.onclick=duplicate;deleteBtn.onclick=delSide.onclick=remove;
+downloadBtn.onclick=()=>{if(!imageLoaded){alert('Import a screenshot first.');return}const old=selectedId;selectedId=null;draw();const a=document.createElement('a');a.download='focusmark-job-card.png';a.href=canvas.toDataURL('image/png');a.click();selectedId=old;draw()};
+window.addEventListener('keydown',e=>{if((e.key==='Delete'||e.key==='Backspace')&&selected()){e.preventDefault();remove()}});
+syncUI();renderLayers();
+</script>
+</body>
+</html>
